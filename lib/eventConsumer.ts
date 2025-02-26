@@ -1,7 +1,8 @@
 import { Queue } from "aws-cdk-lib/aws-sqs";
 import { Construct } from "constructs";
 
-export type EventQueueConsumerEventType = 'ALL' | 'ingestion'| 'reconciliation' | 'authorization' | 'posting';
+export const EventQueueConsumerEvents = ['ingestion', 'reconciliation', 'authorization', 'posting'] as const;
+export type EventQueueConsumerEventType = typeof EventQueueConsumerEvents[number] | "ALL";
 
 export type EventConsumerProps = {
     type: EventQueueConsumerEventType;

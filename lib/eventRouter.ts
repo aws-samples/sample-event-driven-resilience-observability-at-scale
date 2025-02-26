@@ -2,15 +2,22 @@ import { Construct } from "constructs";
 import { EventBus, Rule } from "aws-cdk-lib/aws-events";
 import { Topic, TopicProps } from "aws-cdk-lib/aws-sns";
 import { ServicePrincipal } from "aws-cdk-lib/aws-iam";
-import { Stack } from "aws-cdk-lib";
+import targets = require('aws-cdk-lib/aws-events-targets');
+import { EventQueueConsumerEvents, EventQueueConsumerEventType } from "./eventConsumer";
+import { PhysicalName } from "aws-cdk-lib";
 
 export type EventRouterProps = {
 
 }
 
+export type EventRouterTarget = {
+    topic: Topic;
+    type: EventQueueConsumerEventType;
+    rule: Rule;
+}
+
 export class EventRouter extends Construct {
-    targets: Topic[] = [];
-    rules: Rule[] = [];
+    targets: EventRouterTarget[] = [];
     bus: EventBus;
 
     constructor(scope: Construct, id: string, props: EventRouterProps = {}) {
@@ -20,19 +27,28 @@ export class EventRouter extends Construct {
         this.bus = new EventBus(scope, 'event-choreographer', {
             eventBusName: 'event-choreographer'
         });
+
+        EventQueueConsumerEvents.forEach((event) => {
+            this.addRoutingTarget(scope, id + 'event-choreographer-subscription' + event, event, {
+                topicName: PhysicalName.GENERATE_IF_NEEDED
+            });
+        })
     }
 
     // call this method to add an sns topic as a routing target
-    addRoutingTarget(stack: Stack, name: string, props: TopicProps) {
-        const routingTarget = new Topic(stack, name + 'Topic', props);
+    addRoutingTarget(stack: Construct, name: string, type: EventQueueConsumerEventType, props?: TopicProps) {
+        const topic = new Topic(stack, name + 'Topic', props);
         const rule = new Rule(stack, name + 'Rule', {
-            targets: [routingTarget.bindAsNotificationRuleTarget],
-            eventBus: this.bus
+            targets: [new targets.SnsTopic(topic)],
+            eventBus: this.bus,
+            eventPattern: {
+                detailType: ['Invoice'],
+                source: ['/' + type]
+            }
         });
 
-        routingTarget.grantPublish(new ServicePrincipal('events.amazonaws.com'));
+        topic.grantPublish(new ServicePrincipal('events.amazonaws.com'));
 
-        this.targets.push(routingTarget);
-        this.rules.push(rule);
+        this.targets.push({topic, type, rule});
     }
 }
