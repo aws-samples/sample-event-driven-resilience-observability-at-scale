@@ -1,4 +1,4 @@
-import { AwsIntegration, MethodOptions, RestApi } from "aws-cdk-lib/aws-apigateway";
+import { AuthorizationType, AwsIntegration, MethodOptions, Resource, RestApi } from "aws-cdk-lib/aws-apigateway";
 import { Construct } from "constructs";
 import { EventRouter } from "./eventRouter";
 import { Effect, PolicyDocument, PolicyStatement, Role, ServicePrincipal } from "aws-cdk-lib/aws-iam";
@@ -62,9 +62,9 @@ export class EventProducer extends Construct {
                             "Entries": [
                                 {
                                     "Detail": "$util.escapeJavaScript($input.body)",
-                                    "DetailType": "POST-Request",
-                                    "EventBusName": "${props.router.bus.eventBusName}",
-                                    "Source": "WebClient"
+                                    "DetailType": "Invoice",
+                                    "EventBusName": "${props.router.bus.eventBusArn}",
+                                    "Source": "$context.resourcePath"
                                 }
                             ]
                         }`
@@ -72,11 +72,26 @@ export class EventProducer extends Construct {
             }
         });
 
-        // Add the resources and methods clients will call
-        const methodOptions: MethodOptions = {
+        // add request to all routes
+        const invoiceEventPost: MethodOptions = {
+            // Change to your preferred type
+            authorizationType: AuthorizationType.IAM,
             requestParameters: {
                 "method.request.header.X-Amz-Target": false,
-                "method.request.header.Content-Type": false
+                "method.request.header.Content-Type": false,
+                /* Add required request parameters below
+
+                "method.request.body.invoiceId": true,
+                "method.request.body.payeeCode": true,
+                "method.request.body.legalEntityId": true,
+                "method.request.body.invoiceDate": true,
+                "method.request.body.invoiceDueDate": true,
+                "method.request.body.invoiceAmount": true,
+                "method.request.body.ppv": true,
+                "method.request.body.pqv": true,
+                "method.request.body.matchedAmount": true,
+                "method.request.body.authorizedAmount": true,
+                */
             },
             methodResponses: [
                 {
@@ -86,9 +101,14 @@ export class EventProducer extends Construct {
                 }
             ]
         }
-        api.root.addResource('ingestion').addMethod('POST', integration, methodOptions);
-        api.root.addResource('reconciliation').addMethod('POST', integration, methodOptions);
-        api.root.addResource('authorization').addMethod('POST', integration, methodOptions);
-        api.root.addResource('posting').addMethod('POST', integration, methodOptions);
+
+        // create the api routes
+        const resources: Resource[] = [];
+        resources.push(api.root.addResource('ingestion'));
+        resources.push(api.root.addResource('reconciliation'));
+        resources.push(api.root.addResource('authorization'));
+        resources.push(api.root.addResource('posting'));
+
+        resources.forEach(resource => resource.addMethod('POST', integration, invoiceEventPost))
     }
 }
