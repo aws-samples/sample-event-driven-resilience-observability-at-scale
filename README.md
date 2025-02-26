@@ -31,4 +31,3 @@ cdk bootstrap 123456789012/us-west-2
 * `npx cdk deploy --all`  deploy this stack to your default AWS account/region
 * `npx cdk diff`    compare deployed stack with current state
 * `npx cdk synth`   emits the synthesized CloudFormation template
->>>>>>> 8671f00 (init: Initial commit + README)
