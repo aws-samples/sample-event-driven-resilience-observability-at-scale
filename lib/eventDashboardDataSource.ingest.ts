@@ -15,6 +15,13 @@ exports.handler = async (event: any) => {
         console.log(`Processing \${event.Records.length} SQS messages`);
         console.log('Received event:', JSON.stringify(event, null, 2));
 
+        // Check if database and table names are properly set
+        if (!DATABASE_NAME || !TABLE_NAME) {
+            const error = new Error('Timestream database name or table name not set in environment variables');
+            console.error(error);
+            throw error;
+        }
+
         for (const record of event.Records) {
             await processRecord(record);
         }
@@ -40,7 +47,6 @@ async function processRecord(record: any) {
         // Parse the SNS message body
         const event = JSON.parse(sqsRecords[0].Message);
         console.log('Received event:', event);
-
 
         // Extract the time from the event
         const timestamp = new Date(event.time).getTime();
@@ -126,8 +132,32 @@ async function processRecord(record: any) {
             Records: records
         };
 
-        // Write records to Timestream
-        timestream.send(new WriteRecordsCommand(params)).then((result: any) => console.log('Write records successful:', result))
+        // Write records to Timestream with improved error handling
+        try {
+            const result = await timestream.send(new WriteRecordsCommand(params));
+            console.log('Write records successful:', result);
+        } catch (timestreamError: any) {
+            console.error('Timestream write error:', {
+                message: timestreamError.message,
+                code: timestreamError.code,
+                statusCode: timestreamError['\$metadata']?.httpStatusCode,
+                requestId: timestreamError['\$metadata']?.requestId,
+                records: records.length
+            });
+            
+            // Log specific error types for better debugging
+            if (timestreamError.name === 'RejectedRecordsException') {
+                console.error('Some records were rejected:', timestreamError.RejectedRecords);
+            } else if (timestreamError.name === 'ThrottlingException') {
+                console.error('Request was throttled by Timestream');
+            } else if (timestreamError.name === 'ValidationException') {
+                console.error('Validation error - check your record format and dimensions');
+            } else if (timestreamError.name === 'ResourceNotFoundException') {
+                console.error('Database or table not found - check your configuration');
+            }
+            
+            throw new Error(`Failed to write to Timestream: \${timestreamError.message}`);
+        }
     } catch (error) {
         console.error('Error processing record:', error);
         // You can choose to rethrow the error to have the message return to the queue
