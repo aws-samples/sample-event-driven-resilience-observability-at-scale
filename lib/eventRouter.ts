@@ -9,8 +9,8 @@ export type EventRouterProps = {
 }
 
 export class EventRouter extends Construct {
-    targets: Topic[];
-    rules: Rule[];
+    targets: Topic[] = [];
+    rules: Rule[] = [];
     bus: EventBus;
 
     constructor(scope: Construct, id: string, props: EventRouterProps = {}) {
