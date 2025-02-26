@@ -8,7 +8,7 @@ export type EventDashboardProps = {
 
 }
 
-export class EventDashboard extends EventConsumer {
+export class EventDashboardDataSource extends EventConsumer {
     constructor(scope: Construct, id: string, props: EventDashboardProps) {
         super(scope, id);
 
@@ -17,19 +17,16 @@ export class EventDashboard extends EventConsumer {
         });
         
         const table = new aws_timestream.CfnTable(scope, 'EventDashboardTable', {
-            databaseName: db.databaseName!
-        })
+            databaseName: db.databaseName!,
+            tableName: 'BEMSEventTable'
+        }).addDependency(db)
 
         const lambda = new NodejsFunction(scope, 'ingest');
+        lambda.addEnvironment('TIMESTREAM_DATABASE_NAME', db.databaseName!);
+        lambda.addEnvironment('TIMESTREAM_TABLE_NAME', 'BEMSEventTable');
 
         lambda.addEventSource(new SqsEventSource(this.queue));
 
-        const dashboard = new aws_quicksight.CfnDashboard(scope, 'EventDashboard', {
-            awsAccountId: process.env.AWS_ACCOUNT_ID!,
-            name: 'InvoiceBusinessEventMonitoringSystem',
-            dashboardId: PhysicalName.GENERATE_IF_NEEDED
-        })
-
-        dashboard.add
+        // quicksight does not provide L2 CDK constructs - recommend creating and managing it another way
     }
 }
