@@ -11,6 +11,6 @@ const usEast2StackProps: cdk.StackProps = {
 };
 
 // us-east-2
-new EventRouterStack(app, 'event-router-stack', usEast2StackProps);
-new EventProducerStack(app, 'event-producer-stack', usEast2StackProps);
+const usEast2RouterStack = new EventRouterStack(app, 'event-router-stack', usEast2StackProps);
+new EventProducerStack(app, 'event-producer-stack', usEast2RouterStack.router, usEast2StackProps);
 new EventConsumerStack(app, 'event-consumer-stack', usEast2StackProps);
