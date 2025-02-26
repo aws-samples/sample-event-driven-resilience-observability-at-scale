@@ -4,6 +4,25 @@ This is a proof-of-concept for a Business Event Monitoring System (BEMS) using t
 
 The `cdk.json` file tells the CDK Toolkit how to execute your app.
 
+## Requirements
+First, make sure your AWS credentials are properly configured for your environment.
+
+```
+aws configure
+```
+
+Second, you'll want to set the environment variable `AWS_ACCOUNT_ID` to your AWS Account ID.
+```
+export AWS_ACCOUNT_ID='123456789012'
+```
+
+Finally, before you can deploy this stack, remember to bootstrap the CDK in every deployment region in the target account.
+
+```
+cdk bootstrap 123456789012/us-east-2
+cdk bootstrap 123456789012/us-west-2
+```
+
 ## Useful commands
 
 * `npm run build`   compile typescript to js

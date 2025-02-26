@@ -16,11 +16,13 @@ export class EventRouter extends Construct {
     constructor(scope: Construct, id: string, props: EventRouterProps = {}) {
         super(scope, id);
 
+        // create event bus
         this.bus = new EventBus(scope, 'event-choreographer', {
             eventBusName: 'event-choreographer'
         });
     }
 
+    // call this method to add an sns topic as a routing target
     addRoutingTarget(stack: Stack, name: string, props: TopicProps) {
         const routingTarget = new Topic(stack, name + 'Topic', props);
         const rule = new Rule(stack, name + 'Rule', {
