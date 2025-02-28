@@ -9,8 +9,8 @@ export type EventConsumerProps = {
 }
 
 export class EventConsumer extends Construct {
-    queue: Queue;
-    type: EventQueueConsumerEventType;
+    public queue: Queue;
+    public type: EventQueueConsumerEventType;
 
     constructor(scope: Construct, id: string, props: EventConsumerProps = { type: 'ALL' }) {
         super(scope, id);

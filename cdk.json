@@ -1,5 +1,5 @@
 {
-  "app": "npx ts-node --prefer-ts-exts bin/business-event-monitoring-system.ts",
+  "app": "npx ts-node --prefer-ts-exts bin/event-driven-resilience.ts",
   "watch": {
     "include": [
       "**"

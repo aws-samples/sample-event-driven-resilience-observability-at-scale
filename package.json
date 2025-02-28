@@ -1,8 +1,8 @@
 {
-  "name": "event-driven-architecture",
+  "name": "event-driven-resilience",
   "version": "0.1.0",
   "bin": {
-    "event-driven-architecture": "bin/event-driven-architecture.js"
+    "event-driven-architecture": "bin/event-driven-resilience.js"
   },
   "scripts": {
     "build": "tsc",
