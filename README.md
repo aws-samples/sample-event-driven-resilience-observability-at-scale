@@ -1,6 +1,6 @@
-# BusinessEventMonitoringSystemPOC
+# Event Driven Resilience Code Sample
 
-This is a proof-of-concept for a Business Event Monitoring System (BEMS) using the AWS CDK.
+This is a code sample demonstrating a serverless event-driven architecture enabling engineering teams to process millions of daily events with near real-time visibility and strong resilience.
 
 The `cdk.json` file tells the CDK Toolkit how to execute your app.
 
