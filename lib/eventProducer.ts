@@ -62,7 +62,7 @@ export class EventProducer extends Construct {
                             "Entries": [
                                 {
                                     "Detail": "$util.escapeJavaScript($input.body)",
-                                    "DetailType": "Invoice",
+                                    "DetailType": "BusinessEvent",
                                     "EventBusName": "${props.router.bus.eventBusArn}",
                                     "Source": "$context.resourcePath"
                                 }
@@ -73,24 +73,14 @@ export class EventProducer extends Construct {
         });
 
         // add request to all routes
-        const invoiceEventPost: MethodOptions = {
+        const businessEventPost: MethodOptions = {
             // Change to your preferred type
             authorizationType: AuthorizationType.IAM,
             requestParameters: {
                 "method.request.header.X-Amz-Target": false,
                 "method.request.header.Content-Type": false,
-                /* Add required request parameters below
-
-                "method.request.body.invoiceId": true,
-                "method.request.body.payeeCode": true,
-                "method.request.body.legalEntityId": true,
-                "method.request.body.invoiceDate": true,
-                "method.request.body.invoiceDueDate": true,
-                "method.request.body.invoiceAmount": true,
-                "method.request.body.ppv": true,
-                "method.request.body.pqv": true,
-                "method.request.body.matchedAmount": true,
-                "method.request.body.authorizedAmount": true,
+                /* Add required request parameters here like:
+                "method.request.body.param": true,
                 */
             },
             methodResponses: [
@@ -109,6 +99,6 @@ export class EventProducer extends Construct {
         resources.push(api.root.addResource('authorization'));
         resources.push(api.root.addResource('posting'));
 
-        resources.forEach(resource => resource.addMethod('POST', integration, invoiceEventPost))
+        resources.forEach(resource => resource.addMethod('POST', integration, businessEventPost))
     }
 }
