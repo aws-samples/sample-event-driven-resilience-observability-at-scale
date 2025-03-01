@@ -25,7 +25,7 @@ export class EventRouter extends Construct {
 
         // create event bus
         this.bus = new EventBus(scope, 'event-choreographer', {
-            eventBusName: PhysicalName.GENERATE_IF_NEEDED
+            eventBusName: id + 'CustomEventBus'
         });
 
         EventQueueConsumerEvents.forEach((event) => {
