@@ -23,10 +23,10 @@ export class CellStack extends cdk.Stack {
         })
 
         // create a consumer for every type of event
-        this.consumers.push(new EventConsumer(this, 'IngestionConsumer', { type: 'ingestion' }));
-        this.consumers.push(new EventConsumer(this, 'ReconciliationConsumer', { type: 'reconciliation' }));
-        this.consumers.push(new EventConsumer(this, 'AuthorizationConsumer', { type: 'authorization' }));
-        this.consumers.push(new EventConsumer(this, 'PostingConsumer', { type: 'posting' }));
+        this.consumers.push(new EventConsumer(this, id + 'IngestionConsumer', { type: 'ingestion' }));
+        this.consumers.push(new EventConsumer(this, id + 'ReconciliationConsumer', { type: 'reconciliation' }));
+        this.consumers.push(new EventConsumer(this, id + 'AuthorizationConsumer', { type: 'authorization' }));
+        this.consumers.push(new EventConsumer(this, id + 'PostingConsumer', { type: 'posting' }));
 
         // connect consumers to the router
         this.consumers.forEach(consumer => {
