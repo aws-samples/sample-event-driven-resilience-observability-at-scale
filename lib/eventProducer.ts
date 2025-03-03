@@ -1,8 +1,9 @@
-import { AuthorizationType, AwsIntegration, MethodOptions, Resource, RestApi } from "aws-cdk-lib/aws-apigateway";
+import { AccessLogFormat, AuthorizationType, AwsIntegration, LogGroupLogDestination, MethodLoggingLevel, MethodOptions, Resource, RestApi, CfnAccount, CfnRestApi } from "aws-cdk-lib/aws-apigateway";
 import { Construct } from "constructs";
 import { EventRouter } from "./eventRouter";
-import { Effect, PolicyDocument, PolicyStatement, Role, ServicePrincipal } from "aws-cdk-lib/aws-iam";
+import { Effect, ManagedPolicy, PolicyDocument, PolicyStatement, Role, ServicePrincipal } from "aws-cdk-lib/aws-iam";
 import { PassthroughBehavior } from "aws-cdk-lib/aws-apigatewayv2";
+import { LogGroup } from "aws-cdk-lib/aws-logs";
 
 
 export type EventProducerProps = {
@@ -13,11 +14,51 @@ export class EventProducer extends Construct {
     constructor(scope: Construct, id: string, props: EventProducerProps) {
         super(scope, id);
 
-        const api = new RestApi(scope, id + 'RestApi', {
-            // setting this prevents replacement behavior
-            restApiName: id + 'EventProducerApi'
+        // Create a role for writing logs to CloudWatch
+        const cloudWatchRole = new Role(this, 'ApiGatewayCloudWatchRole', {
+            assumedBy: new ServicePrincipal('apigateway.amazonaws.com'),
+            managedPolicies: [
+                ManagedPolicy.fromAwsManagedPolicyName('service-role/AmazonAPIGatewayPushToCloudWatchLogs')
+            ]
         });
 
+        // Update API Gateway account settings to use this role.
+        const apiGatewayAccount = new CfnAccount(this, 'ApiGatewayAccount', {
+            cloudWatchRoleArn: cloudWatchRole.roleArn
+          });
+
+        // Create a log group for storing access logs
+        const accessLogs = new LogGroup(this, id + 'ApiAccessLogs', {
+            logGroupName: id + 'ApiAccessLogs'
+        });
+
+        // CDK code for API Gateway with enhanced logging
+        const api = new RestApi(scope, id + 'EventsRestApi', {
+            deployOptions: {
+                accessLogFormat: AccessLogFormat.jsonWithStandardFields({
+                    caller: true,
+                    httpMethod: true,
+                    ip: true,
+                    protocol: true,
+                    requestTime: true,
+                    resourcePath: true,
+                    responseLength: true,
+                    status: true,
+                    user: true
+                }),
+                accessLogDestination: new LogGroupLogDestination(accessLogs),
+                loggingLevel: MethodLoggingLevel.INFO,
+                dataTraceEnabled: true,
+                metricsEnabled: true,
+            },
+            // setting this prevents replacement behavior
+            restApiName: id + 'EventProducerApi',
+        });
+
+        // add dependency between api gateway and the account/role for CloudWatch
+        (api.node.defaultChild as CfnRestApi).addDependency(apiGatewayAccount);
+
+        // Create service role for API Gateway granting access to EventBridge
         const role = new Role(scope, 'role', {
             assumedBy: new ServicePrincipal('apigateway.amazonaws.com'),
             inlinePolicies: {
@@ -32,7 +73,6 @@ export class EventProducer extends Construct {
                 })
             }
         });
-
 
         // set up the AWS integration with the event bus as a target
         const integration = new AwsIntegration({
@@ -64,7 +104,10 @@ export class EventProducer extends Construct {
                                     "Detail": "$util.escapeJavaScript($input.body)",
                                     "DetailType": "BusinessEvent",
                                     "EventBusName": "${props.router.bus.eventBusArn}",
-                                    "Source": "$context.resourcePath"
+                                    "Source": "$context.resourcePath",
+                                    "TraceHeader": "$context.requestId",
+                                    "Time": $context.requestTimeEpoch,
+                                    "Resources": ["$context.apiId"]
                                 }
                             ]
                         }`
@@ -77,8 +120,11 @@ export class EventProducer extends Construct {
             // Change to your preferred type
             authorizationType: AuthorizationType.IAM,
             requestParameters: {
+                "method.request.header.Authorization": true,
                 "method.request.header.X-Amz-Target": false,
                 "method.request.header.Content-Type": false,
+                "method.request.header.X-Correlation-Id": false,
+                "method.request.header.X-Request-Id": false
                 /* Add required request parameters here like:
                 "method.request.body.param": true,
                 */
@@ -92,7 +138,7 @@ export class EventProducer extends Construct {
             ]
         }
 
-        // create the api routes
+        // create the api routes for each event type
         const resources: Resource[] = [];
         resources.push(api.root.addResource('ingestion'));
         resources.push(api.root.addResource('reconciliation'));

@@ -19,8 +19,7 @@ export AWS_ACCOUNT_ID='123456789012'
 Finally, before you can deploy this stack, remember to bootstrap the CDK in every deployment region in the target account.
 
 ```
-cdk bootstrap 123456789012/us-east-2
-cdk bootstrap 123456789012/us-west-2
+cdk bootstrap 123456789012/us-east-2 123456789012/us-east-1 123456789012/us-west-2 123456789012/us-west-1
 ```
 
 ## Useful commands
