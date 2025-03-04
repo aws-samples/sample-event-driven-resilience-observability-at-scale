@@ -19,7 +19,7 @@ export class CellStack extends cdk.Stack {
         this.router = new EventRouter(this, id + 'Router');
 
         // create an event producer
-        this.producer = new EventProducer(this, id + 'Invoice', {
+        this.producer = new EventProducer(this, id + 'Producer', {
             router: this.router
         })
 
