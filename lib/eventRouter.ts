@@ -43,8 +43,8 @@ export class EventRouter extends Construct {
             eventPattern: {}
         });
 
-        // Custom metrics for EventBridge
-        new Metric({
+        // Create metrics for EventBridge
+        const eventsProcessedMetric = new Metric({
             namespace: 'ApplicationEvents',
             metricName: 'EventsProcessed',
             dimensionsMap: {
@@ -53,7 +53,9 @@ export class EventRouter extends Construct {
             },
             statistic: 'Sum',
             period: Duration.minutes(1)
-        }).createAlarm(this, 'LowEventThroughputAlarm', {
+        })
+        
+        eventsProcessedMetric.createAlarm(this, 'LowEventThroughputAlarm', {
             evaluationPeriods: 3,
             // Tune this threshold based on your application
             threshold: 100,
@@ -124,7 +126,7 @@ export class EventRouter extends Construct {
         const numberOfNotificationsDelivered = topic.metricNumberOfNotificationsDelivered();
         const numberOfNotificationsFailed = topic.metricNumberOfNotificationsFailed();
 
-        // Create alarms for important metrics
+        // Create alarms for failed notifications
         numberOfNotificationsFailed.createAlarm(stack, `${name}FailedNotificationsAlarm`, {
             threshold: 1,
             evaluationPeriods: 1,

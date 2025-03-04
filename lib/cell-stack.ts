@@ -6,15 +6,14 @@ import { EventConsumer } from './eventConsumer';
 import { EventProducer } from './eventProducer';
 import { EventRouter } from './eventRouter';
 import { Queue } from 'aws-cdk-lib/aws-sqs';
-import { EventDashboard } from './eventDashboard';
-import { EventAlarms } from './eventAlarms';
+import { EventMonitoring } from './eventMonitoring';
+import { consumers } from 'stream';
 
 export class CellStack extends cdk.Stack {
     router: EventRouter;
     producer: EventProducer;
     consumers: EventConsumer[] = [];
-    dashboard: EventDashboard;
-    alarms: EventAlarms;
+    monitoring: EventMonitoring;
 
     constructor(scope: Construct, id: string, props?: cdk.StackProps) {
         super(scope, id, props);
@@ -42,7 +41,10 @@ export class CellStack extends cdk.Stack {
         });
 
         // create Dashboards and Alarms
-        this.dashboard = new EventDashboard(this, id + 'Dashboard');
-        this.alarms = new EventAlarms(this, id + 'Alarms');
+        this.monitoring = new EventMonitoring(this, id + 'Dashboard', {
+            router: this.router,
+            producer: this.producer,
+            consumers: this.consumers
+        });
     }
 }
