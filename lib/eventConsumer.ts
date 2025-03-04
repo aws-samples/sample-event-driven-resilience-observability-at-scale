@@ -1,4 +1,4 @@
-import { Duration, PhysicalName } from "aws-cdk-lib";
+import { aws_iam, aws_lambda, Duration, PhysicalName } from "aws-cdk-lib";
 import { Metric } from "aws-cdk-lib/aws-cloudwatch";
 import { Queue } from "aws-cdk-lib/aws-sqs";
 import { Construct } from "constructs";
@@ -45,5 +45,27 @@ export class EventConsumer extends Construct {
             evaluationPeriods: 2,
             alarmDescription: 'Messages are getting old in the queue'
         });
+
+        /* Uncomment the following code block to add Lambda functions to process items from the Queue
+        // CDK code for observable Lambda function
+        const processingFunction = new aws_lambda.Function(this, 'EventProcessingFunction', {
+            runtime: aws_lambda.Runtime.NODEJS_22_X,
+            handler: 'index.handler',
+            code: aws_lambda.Code.fromAsset('lambda'),
+            tracing: aws_lambda.Tracing.ACTIVE, // Enable X-Ray tracing
+            environment: {
+            LOG_LEVEL: 'INFO',
+            METRICS_NAMESPACE: 'EventProcessing'
+            }
+        });
+        
+        // Grant permissions for CloudWatch metrics
+        processingFunction.addToRolePolicy(new aws_iam.PolicyStatement({
+            actions: ['cloudwatch:PutMetricData'],
+            resources: ['*']
+        }));
+
+        this.queue.grantConsumeMessages(processingFunction);
+        */
     }
 }
