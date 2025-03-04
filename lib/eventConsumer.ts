@@ -11,40 +11,30 @@ export type EventConsumerProps = {
 }
 
 export class EventConsumer extends Construct {
-    public queue: Queue;
-    public type: EventQueueConsumerEventType;
+    queue: Queue;
+    deadLetterQueue: Queue;
+    type: EventQueueConsumerEventType;
+    lambda: Function;
 
     constructor(scope: Construct, id: string, props: EventConsumerProps = { type: 'ALL' }) {
         super(scope, id);
 
         this.type = props.type;
 
+        const deadLetterQueue = new Queue(this, id + 'DeadLetterQueue', {
+            queueName: PhysicalName.GENERATE_IF_NEEDED
+        });
+
         // create a queue with a dead letter queue attached
         this.queue = new Queue(this, id + 'EventsQueue', {
             visibilityTimeout: Duration.seconds(30),
             deadLetterQueue: {
                 maxReceiveCount: 3,
-                queue: new Queue(this, id + 'DeadLetterQueue', {
-                    queueName: PhysicalName.GENERATE_IF_NEEDED
-                })
+                queue: deadLetterQueue
             }
         });
 
-        // Create custom CloudWatch metrics for queue monitoring
-        const approximateAgeOfOldestMessage = new Metric({
-            namespace: 'AWS/SQS',
-            metricName: 'ApproximateAgeOfOldestMessage',
-            dimensionsMap: { QueueName: this.queue.queueName },
-            statistic: 'Maximum',
-            period: Duration.minutes(1)
-        });
-
-        // Create alarm for message processing delays
-        approximateAgeOfOldestMessage.createAlarm(this, 'OldMessageAlarm', {
-            threshold: 60, // seconds
-            evaluationPeriods: 2,
-            alarmDescription: 'Messages are getting old in the queue'
-        });
+        this.deadLetterQueue = deadLetterQueue;
 
         // CDK code for observable Lambda consumer
         const processingFunction = new aws_lambda.Function(this, 'EventProcessingFunction', {

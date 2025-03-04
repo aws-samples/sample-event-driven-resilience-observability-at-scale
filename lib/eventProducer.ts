@@ -11,6 +11,8 @@ export type EventProducerProps = {
 }
 
 export class EventProducer extends Construct {
+    api: RestApi;
+
     constructor(scope: Construct, id: string, props: EventProducerProps) {
         super(scope, id);
 
@@ -57,6 +59,7 @@ export class EventProducer extends Construct {
 
         // add dependency between api gateway and the account/role for CloudWatch
         (api.node.defaultChild as CfnRestApi).addDependency(apiGatewayAccount);
+        this.api = api;
 
         // Create service role for API Gateway granting access to EventBridge
         const role = new Role(scope, 'role', {

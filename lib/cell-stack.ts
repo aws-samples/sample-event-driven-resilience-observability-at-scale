@@ -13,6 +13,7 @@ export class CellStack extends cdk.Stack {
     router: EventRouter;
     producer: EventProducer;
     consumers: EventConsumer[] = [];
+    deadLetterQueues: Queue[] = [];
     monitoring: EventMonitoring;
 
     constructor(scope: Construct, id: string, props?: cdk.StackProps) {
@@ -35,16 +36,27 @@ export class CellStack extends cdk.Stack {
         // connect consumers to the router
         this.consumers.forEach(consumer => {
             const target = this.router.targets.find(target => target.type == consumer.type)!;
+
+            const deadLetterQueue = new Queue(this, consumer.node.id + consumer.type + 'DeadLetterQueue');
             target.topic.addSubscription(new SqsSubscription(consumer.queue, {
-                deadLetterQueue: new Queue(this, consumer.node.id + consumer.type + 'DeadLetterQueue')
+                deadLetterQueue: deadLetterQueue
             }));
+
+            this.deadLetterQueues.push(deadLetterQueue);
         });
+
+        const deadLetterQueues = [
+            ...this.deadLetterQueues, 
+            this.router.deadLetterQueue,
+            ...this.consumers?.map(consumer => consumer.deadLetterQueue)
+        ]
 
         // create Dashboards and Alarms
         this.monitoring = new EventMonitoring(this, id + 'Dashboard', {
             router: this.router,
             producer: this.producer,
-            consumers: this.consumers
+            consumers: this.consumers,
+            deadLetterQueues: deadLetterQueues
         });
     }
 }
