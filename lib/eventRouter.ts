@@ -1,7 +1,7 @@
 import { Construct } from "constructs";
 import { Archive, EventBus, Rule, RuleTargetInput } from "aws-cdk-lib/aws-events";
-import { Topic, TopicProps } from "aws-cdk-lib/aws-sns";
-import { ServicePrincipal } from "aws-cdk-lib/aws-iam";
+import { LoggingProtocol, Topic, TopicProps } from "aws-cdk-lib/aws-sns";
+import { PolicyStatement, Role, ServicePrincipal } from "aws-cdk-lib/aws-iam";
 import targets = require('aws-cdk-lib/aws-events-targets');
 import { EventQueueConsumerEvents, EventQueueConsumerEventType } from "./eventConsumer";
 import { Duration, PhysicalName, RemovalPolicy } from "aws-cdk-lib";
@@ -89,8 +89,35 @@ export class EventRouter extends Construct {
 
     // call this method to add an sns topic as a routing target
     addRoutingTarget(stack: Construct, name: string, type: EventQueueConsumerEventType, props?: TopicProps) {
+        // create the necessary IAM roles for delivery status logging
+        const successFeedbackRole = new Role(stack, `${name}SuccessFeedbackRole`, {
+            assumedBy: new ServicePrincipal('sns.amazonaws.com'),
+        });
+
+        successFeedbackRole.addToPolicy(new PolicyStatement({
+            actions: ['logs:CreateLogGroup', 'logs:CreateLogStream', 'logs:PutLogEvents'],
+            resources: ['*'], // You might want to restrict this to specific log groups
+        }));
+
+        const failureFeedbackRole = new Role(stack, `${name}FailureFeedbackRole`, {
+            assumedBy: new ServicePrincipal('sns.amazonaws.com'),
+        });
+
+        failureFeedbackRole.addToPolicy(new PolicyStatement({
+            actions: ['logs:CreateLogGroup', 'logs:CreateLogStream', 'logs:PutLogEvents'],
+            resources: ['*'], // You might want to restrict this to specific log groups
+        }));
+
         // Create the SNS topic
-        const topic = new Topic(stack, name + 'Topic', props);
+        const topic = new Topic(stack, name + 'Topic', {
+            ...props,
+            loggingConfigs: [{
+              protocol: LoggingProtocol.SQS,
+              successFeedbackRole: successFeedbackRole,
+              failureFeedbackRole: failureFeedbackRole,
+              successFeedbackSampleRate: 100, // Percentage of successful deliveries to log (0-100)
+            }],
+          });
 
         // Add CloudWatch metrics and alarms for the topic
         const numberOfMessagesPublished = topic.metricNumberOfMessagesPublished();

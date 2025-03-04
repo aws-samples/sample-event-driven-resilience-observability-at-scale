@@ -65,7 +65,11 @@ export class EventConsumer extends Construct {
             resources: ['*']
         }));
 
+        // Connect the SQS to Lambda
         this.queue.grantConsumeMessages(processingFunction);
+        processingFunction.addEventSourceMapping('EventSourceMapping', {
+            eventSourceArn: this.queue.queueArn
+        });
         */
     }
 }
