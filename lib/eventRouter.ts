@@ -38,7 +38,7 @@ export class EventRouter extends Construct {
         // Archive all events for replay capability
         new Archive(this, 'EventsArchive', {
             sourceEventBus: this.bus,
-            archiveName: 'all-events-archive',
+            archiveName: PhysicalName.GENERATE_IF_NEEDED,
             retention: Duration.days(30),
             eventPattern: {}
         });

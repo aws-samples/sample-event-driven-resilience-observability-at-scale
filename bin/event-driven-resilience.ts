@@ -18,12 +18,6 @@ new CellStack(app, 'CellStackB', {
 
 new CellStack(app, 'CellStackC', {
     env: {
-        region: 'us-east-2'
-    }
-});
-
-new CellStack(app, 'CellStackD', {
-    env: {
-        region: 'us-east-1'
+        region: 'us-west-2'
     }
 });
