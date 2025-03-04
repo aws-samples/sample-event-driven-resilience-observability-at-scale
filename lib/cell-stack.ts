@@ -5,6 +5,7 @@ import { SqsSubscription } from 'aws-cdk-lib/aws-sns-subscriptions';
 import { EventConsumer } from './eventConsumer';
 import { EventProducer } from './eventProducer';
 import { EventRouter } from './eventRouter';
+import { Queue } from 'aws-cdk-lib/aws-sqs';
 
 export class CellStack extends cdk.Stack {
     router: EventRouter;
@@ -31,7 +32,9 @@ export class CellStack extends cdk.Stack {
         // connect consumers to the router
         this.consumers.forEach(consumer => {
             const target = this.router.targets.find(target => target.type == consumer.type)!;
-            target.topic.addSubscription(new SqsSubscription(consumer.queue));
+            target.topic.addSubscription(new SqsSubscription(consumer.queue, {
+                deadLetterQueue: new Queue(this, consumer.node.id + consumer.type + 'DeadLetterQueue')
+            }));
         });
     }
 }

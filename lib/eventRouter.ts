@@ -1,5 +1,5 @@
 import { Construct } from "constructs";
-import { Archive, EventBus, Rule } from "aws-cdk-lib/aws-events";
+import { Archive, EventBus, Rule, RuleTargetInput } from "aws-cdk-lib/aws-events";
 import { Topic, TopicProps } from "aws-cdk-lib/aws-sns";
 import { ServicePrincipal } from "aws-cdk-lib/aws-iam";
 import targets = require('aws-cdk-lib/aws-events-targets');
@@ -7,6 +7,7 @@ import { EventQueueConsumerEvents, EventQueueConsumerEventType } from "./eventCo
 import { Duration, PhysicalName, RemovalPolicy } from "aws-cdk-lib";
 import { ComparisonOperator, Metric } from "aws-cdk-lib/aws-cloudwatch";
 import { LogGroup, RetentionDays } from "aws-cdk-lib/aws-logs";
+import { Queue } from "aws-cdk-lib/aws-sqs";
 
 export type EventRouterProps = {
 
@@ -26,9 +27,12 @@ export class EventRouter extends Construct {
     constructor(scope: Construct, id: string, props: EventRouterProps = {}) {
         super(scope, id);
 
-        // create event bus
-        this.bus = new EventBus(scope, 'event-choreographer', {
-            eventBusName: id + 'CustomEventBus'
+        // create event bus with a dead letter queue
+        this.bus = new EventBus(scope, 'EventChoreographer', {
+            eventBusName: id + 'CustomEventBus',
+            deadLetterQueue: new Queue(scope, id + 'EventChoreographerDLQ', {
+                queueName: PhysicalName.GENERATE_IF_NEEDED
+            })
         });
 
         // Archive all events for replay capability
@@ -85,9 +89,32 @@ export class EventRouter extends Construct {
 
     // call this method to add an sns topic as a routing target
     addRoutingTarget(stack: Construct, name: string, type: EventQueueConsumerEventType, props?: TopicProps) {
+        // Create the SNS topic
         const topic = new Topic(stack, name + 'Topic', props);
+
+        // Add CloudWatch metrics and alarms for the topic
+        const numberOfMessagesPublished = topic.metricNumberOfMessagesPublished();
+        const numberOfNotificationsDelivered = topic.metricNumberOfNotificationsDelivered();
+        const numberOfNotificationsFailed = topic.metricNumberOfNotificationsFailed();
+
+        // Create alarms for important metrics
+        numberOfNotificationsFailed.createAlarm(stack, `${name}FailedNotificationsAlarm`, {
+            threshold: 1,
+            evaluationPeriods: 1,
+            alarmDescription: 'Alert when any notifications fail to deliver',
+            comparisonOperator: ComparisonOperator.GREATER_THAN_THRESHOLD,
+        });
+
+        // Create a rule with enhanced monitoring
         const rule = new Rule(stack, name + 'Rule', {
-            targets: [new targets.SnsTopic(topic)],
+            targets: [new targets.SnsTopic(topic, {
+                // Add retry policy
+                retryAttempts: 3,
+                // Set maximum event age
+                maxEventAge: Duration.hours(2),
+                // Customize the message if needed
+                message: RuleTargetInput.fromEventPath('$.detail')
+            })],
             eventBus: this.bus,
             eventPattern: {
                 detailType: ['Invoice'],
