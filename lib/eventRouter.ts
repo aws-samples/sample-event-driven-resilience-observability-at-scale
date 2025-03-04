@@ -117,7 +117,7 @@ export class EventRouter extends Construct {
             })],
             eventBus: this.bus,
             eventPattern: {
-                detailType: ['Invoice'],
+                detailType: ['BusinessEvent'],
                 source: ['/' + type]
             }
         });
