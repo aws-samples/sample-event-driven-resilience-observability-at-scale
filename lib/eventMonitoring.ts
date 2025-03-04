@@ -25,23 +25,26 @@ export class EventMonitoring extends Construct {
     super(scope, id);
 
     // Create alarms on API Gateway
-    props?.producer.api.metricClientError().createAlarm(scope, 'HighClientErrorAlarm', {
+    const clientErrorAlarm = props?.producer.api.metricClientError().createAlarm(scope, 'HighClientErrorAlarm', {
       evaluationPeriods: 3,
       threshold: 20,
       alarmDescription: 'Alert when client error rate exceeds 20%'
     });
+    this.alarms.push(clientErrorAlarm!);
 
-    props?.producer.api.metricServerError().createAlarm(scope, 'HighServerErrorAlarm', {
+    const serverErrorAlarm = props?.producer.api.metricServerError().createAlarm(scope, 'HighServerErrorAlarm', {
       evaluationPeriods: 3,
       threshold: 1,
       alarmDescription: 'Alert when server error rate exceeds 1%'
     });
+    this.alarms.push(serverErrorAlarm!);
 
-    props?.producer.api.metricLatency().createAlarm(scope, 'HighLatencyAlarm', {
+    const latencyAlarm = props?.producer.api.metricLatency().createAlarm(scope, 'HighLatencyAlarm', {
       evaluationPeriods: 3,
       threshold: 1000,
       alarmDescription: 'Alert when latency exceeds 1 second'
     });
+    this.alarms.push(latencyAlarm!);
 
     // Create metrics on EventBridge Bus
     const busInvocations = new Metric({
@@ -65,7 +68,7 @@ export class EventMonitoring extends Construct {
     });
 
     // Create alarms on EventBridge Bus
-    new Alarm(this, 'EventBusFailedInvocationsAlarm', {
+    const busFailedInvocationsAlarm = new Alarm(this, 'EventBusFailedInvocationsAlarm', {
       metric: busFailedInvocations,
       threshold: 1,
       evaluationPeriods: 3,
@@ -73,6 +76,7 @@ export class EventMonitoring extends Construct {
       alarmDescription: 'Alert when EventBridge bus has failed invocations',
       treatMissingData: TreatMissingData.NOT_BREACHING
     });
+    this.alarms.push(busFailedInvocationsAlarm);
 
     // For each rule, create metrics and alarms
     props?.router.rules?.forEach((rule, index) => {
@@ -107,7 +111,7 @@ export class EventMonitoring extends Construct {
       });
 
       // Rule Failed Invocations Alarm
-      new Alarm(this, `RuleFailedInvocationsAlarm-${index}`, {
+      const ruleFailedInvocationsAlarm = new Alarm(this, `RuleFailedInvocationsAlarm-${index}`, {
         metric: ruleFailedInvocations,
         threshold: 1,
         evaluationPeriods: 2,
@@ -115,73 +119,79 @@ export class EventMonitoring extends Construct {
         alarmDescription: `Alert when EventBridge rule ${rule.ruleName} has failed invocations`,
         treatMissingData: TreatMissingData.NOT_BREACHING
       });
+      this.alarms.push(ruleFailedInvocationsAlarm);
 
       // Rule Throttled Events Alarm
-      new Alarm(this, `RuleThrottledEventsAlarm-${index}`, {
+      const ruleThrottledEventsAlarm = new Alarm(this, `RuleThrottledEventsAlarm-${index}`, {
         metric: ruleThrottledRules,
         threshold: 1,
         evaluationPeriods: 1,
         alarmDescription: `Alert when EventBridge rule ${rule.ruleName} is being throttled`,
         treatMissingData: TreatMissingData.NOT_BREACHING
       });
+      this.alarms.push(ruleThrottledEventsAlarm);
     });
 
     // Create alarms for SNS topics
     props?.router.topics?.forEach((topic, index) => {
       const topicNumberOfNotificationsFailed = topic.metricNumberOfNotificationsFailed();
 
-      new Alarm(this, `TopicFailedNotificationsAlarm-${index}`, {
+      const topicFailedNotificationsAlarm = new Alarm(this, `TopicFailedNotificationsAlarm-${index}`, {
         threshold: 1,
         evaluationPeriods: 1,
         alarmDescription: `Alert when any notifications fail to deliver for topic ${topic.topicName}`,
         comparisonOperator: cdk.aws_cloudwatch.ComparisonOperator.GREATER_THAN_THRESHOLD,
         metric: topicNumberOfNotificationsFailed
       });
+      this.alarms.push(topicFailedNotificationsAlarm);
     });
 
     // Create alarms for Consumer SQS queues
     props?.consumers?.forEach((consumer, index) => {
       const queueApproximateNumberOfMessagesVisible = consumer.queue.metricApproximateNumberOfMessagesVisible();
 
-      new Alarm(this, `QueueApproximateNumberOfMessagesVisibleAlarm-${index}`, {
+      const queueMessagesVisibleAlarm = new Alarm(this, `QueueApproximateNumberOfMessagesVisibleAlarm-${index}`, {
         threshold: 100,
         evaluationPeriods: 1,
         alarmDescription: `Alert when the approximate number of messages visible in the queue ${consumer.queue.queueName} exceeds 100`,
         comparisonOperator: cdk.aws_cloudwatch.ComparisonOperator.GREATER_THAN_THRESHOLD,
         metric: queueApproximateNumberOfMessagesVisible
       });
+      this.alarms.push(queueMessagesVisibleAlarm);
 
       const queueApproximateAgeOfOldestMessage = consumer.queue.metricApproximateAgeOfOldestMessage();
-      new Alarm(this, `QueueApproximateAgeOfOldestMessageAlarm-${index}`, {
+      const queueOldestMessageAlarm = new Alarm(this, `QueueApproximateAgeOfOldestMessageAlarm-${index}`, {
         threshold: 900,
         evaluationPeriods: 1,
         alarmDescription: `Alert when the approximate age of the oldest message in the queue ${consumer.queue.queueName} exceeds 900 seconds`,
         comparisonOperator: cdk.aws_cloudwatch.ComparisonOperator.GREATER_THAN_THRESHOLD,
         metric: queueApproximateAgeOfOldestMessage
       });
+      this.alarms.push(queueOldestMessageAlarm);
     });
 
     // Create alarms on Dead Letter Queues
     props?.deadLetterQueues.forEach((queue, index) => {
       const queueApproximateNumberOfMessagesVisible = queue.metricApproximateNumberOfMessagesVisible();
 
-      new Alarm(this, `DeadLetterQueueApproximateNumberOfMessagesVisibleAlarm-${index}`, {
+      const dlqMessagesVisibleAlarm = new Alarm(this, `DeadLetterQueueApproximateNumberOfMessagesVisibleAlarm-${index}`, {
         threshold: 1,
         evaluationPeriods: 1,
         alarmDescription: `Alert when the approximate number of messages visible in the dead letter queue ${queue.queueName} exceeds 1`,
         comparisonOperator: cdk.aws_cloudwatch.ComparisonOperator.GREATER_THAN_THRESHOLD,
         metric: queueApproximateNumberOfMessagesVisible
       });
+      this.alarms.push(dlqMessagesVisibleAlarm);
 
-      // make an alarm on the age of the oldest message > 1 day
       const queueApproximateAgeOfOldestMessage = queue.metricApproximateAgeOfOldestMessage();
-      new Alarm(this, `DeadLetterQueueApproximateAgeOfOldestMessageAlarm-${index}`, {
+      const dlqOldestMessageAlarm = new Alarm(this, `DeadLetterQueueApproximateAgeOfOldestMessageAlarm-${index}`, {
         threshold: 86400,
         evaluationPeriods: 1,
         alarmDescription: `Alert when the approximate age of the oldest message in the dead letter queue ${queue.queueName} exceeds 1 day`,
         comparisonOperator: cdk.aws_cloudwatch.ComparisonOperator.GREATER_THAN_THRESHOLD,
         metric: queueApproximateAgeOfOldestMessage
       });
+      this.alarms.push(dlqOldestMessageAlarm);
     });
 
     // Create a new dashboard
