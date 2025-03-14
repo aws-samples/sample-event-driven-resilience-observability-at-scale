@@ -7,6 +7,7 @@ import { EventQueueConsumerEvents, EventQueueConsumerEventType } from "./eventCo
 import { Duration, PhysicalName, RemovalPolicy } from "aws-cdk-lib";
 import { LogGroup, RetentionDays } from "aws-cdk-lib/aws-logs";
 import { Queue } from "aws-cdk-lib/aws-sqs";
+import { Key } from "aws-cdk-lib/aws-kms";
 
 export type EventRouterProps = {
 
@@ -101,6 +102,8 @@ export class EventRouter extends Construct {
         // Create the SNS topic
         const topic = new Topic(stack, name + 'Topic', {
             ...props,
+            enforceSSL: true,
+            masterKey: new Key(stack, name + "Key"),
             loggingConfigs: [{
                 protocol: LoggingProtocol.SQS,
                 successFeedbackRole: successFeedbackRole,

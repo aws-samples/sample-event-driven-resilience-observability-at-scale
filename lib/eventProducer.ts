@@ -120,7 +120,9 @@ export class EventProducer extends Construct {
 
         // add request to all routes
         const businessEventPost: MethodOptions = {
-            // Change to your preferred type
+            // WARNING: For production APIs, we recommend an
+            // authorization strategy as a security best practice.
+            // We use IAM here as this is a sample API.
             authorizationType: AuthorizationType.IAM,
             requestParameters: {
                 "method.request.header.Authorization": true,

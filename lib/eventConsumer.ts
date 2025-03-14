@@ -1,6 +1,6 @@
 import { aws_iam, aws_lambda, Duration, PhysicalName } from "aws-cdk-lib";
 import { Metric } from "aws-cdk-lib/aws-cloudwatch";
-import { Queue } from "aws-cdk-lib/aws-sqs";
+import { Queue, QueueEncryption } from "aws-cdk-lib/aws-sqs";
 import { Construct } from "constructs";
 
 export const EventQueueConsumerEvents = ['ingestion', 'reconciliation', 'authorization', 'posting'] as const;
@@ -22,11 +22,15 @@ export class EventConsumer extends Construct {
         this.type = props.type;
 
         const deadLetterQueue = new Queue(this, id + 'DeadLetterQueue', {
-            queueName: PhysicalName.GENERATE_IF_NEEDED
+            queueName: PhysicalName.GENERATE_IF_NEEDED,
+            encryption: QueueEncryption.SQS_MANAGED,
+            enforceSSL: true
         });
 
         // create a queue with a dead letter queue attached
         this.queue = new Queue(this, id + 'EventsQueue', {
+            encryption: QueueEncryption.SQS_MANAGED,
+            enforceSSL: true,
             visibilityTimeout: Duration.seconds(30),
             deadLetterQueue: {
                 maxReceiveCount: 3,

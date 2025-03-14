@@ -8,6 +8,7 @@ import { Queue } from 'aws-cdk-lib/aws-sqs';
 import { EmailSubscription } from 'aws-cdk-lib/aws-sns-subscriptions';
 import { Topic } from 'aws-cdk-lib/aws-sns';
 import { ServicePrincipal } from 'aws-cdk-lib/aws-iam';
+import { Key } from 'aws-cdk-lib/aws-kms';
 
 export interface EventMonitoringProps {
   router: EventRouter;
@@ -332,7 +333,9 @@ export class EventMonitoring extends Construct {
 
     // Create SNS topic for alarms
     const alarmTopic = new Topic(this, 'AlarmTopic', {
-      displayName: 'Event Monitoring Alarms'
+      displayName: 'Event Monitoring Alarms',
+      enforceSSL: true,
+      masterKey: new Key(scope, id + "Key"),
     });
     // Add email subscription
     alarmTopic.addSubscription(new EmailSubscription('team@example.com'));
