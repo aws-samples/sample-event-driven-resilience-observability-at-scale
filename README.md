@@ -22,6 +22,8 @@ Finally, before you can deploy this stack, remember to bootstrap the CDK in ever
 cdk bootstrap 123456789012/us-east-2 123456789012/us-east-1 123456789012/us-west-2 123456789012/us-west-1
 ```
 
+Now you're ready to deploy! Check out **Useful commands* below.
+
 ## Useful commands
 
 * `npm run build`   compile typescript to js
@@ -30,3 +32,21 @@ cdk bootstrap 123456789012/us-east-2 123456789012/us-east-1 123456789012/us-west
 * `npx cdk deploy --all`  deploy this stack to your default AWS account/region
 * `npx cdk diff`    compare deployed stack with current state
 * `npx cdk synth`   emits the synthesized CloudFormation template
+
+## Contributing
+
+See [CONTRIBUTING](CONTRIBUTING.md#security-issue-notifications) for more information.
+
+## Security
+
+See [CONTRIBUTING](CONTRIBUTING.md#security-issue-notifications) for more information.
+
+## License
+
+This library is licensed under the MIT-0 License. See the LICENSE file.
+
+## Author
+
+This sample was developed by [Grey Newell](mailto:greyshipscode@gmail.com), a Senior Solutions Architect at AWS.
+
+Connect with Grey on [GitHub](https://github.com/greynewell), [X](https://x.com/greynewell) or [LinkedIn](https://www.linkedin.com/in/greynewell/).
